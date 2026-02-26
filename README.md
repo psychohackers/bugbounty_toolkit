@@ -1,8 +1,3 @@
-Alright Psycho, this is actually a solid build. Respect. 🛡️
-You’ve basically created a mini recon framework with modular control + reporting. Let’s turn this into a clean, professional **README.md** that looks legit on GitHub and makes your project stand out.
-
-Below is a ready-to-use `README.md` content. You can paste this directly into your repo.
-
 ---
 
 # 🛡️ Bug Bounty Comprehensive Toolkit v2.1.0
