@@ -1,482 +1,234 @@
-# 🛡️ Bug Bounty Comprehensive Toolkit v2.0.0
+```markdown
+# Bug Bounty Comprehensive Toolkit v2.1.0
 
-![Python Version](https://img.shields.io/badge/Python-3.8%2B-blue)
-![Version](https://img.shields.io/badge/Version-2.0.0-green)
-![License](https://img.shields.io/badge/License-EDUCATIONAL-red)
-![Platform](https://img.shields.io/badge/Platform-Linux%2FWindows%2FmacOS-lightgrey)
+**Educational Purpose Only**  
+Created by Psycho ([@the_psycho_of_hackers](https://instagram.com/the_psycho_of_hackers))
 
-## ⚠️ DISCLAIMER
+A powerful, all-in-one reconnaissance and vulnerability scanning toolkit designed for bug bounty hunters, penetration testers, and cybersecurity students. This tool automates the process of gathering information, discovering assets, and identifying common security flaws in web applications and network services.
 
-**THIS TOOL IS FOR EDUCATIONAL PURPOSES ONLY!**
-
-- 🔒 Use only on systems you own or have explicit written permission to test
-- ⚖️ Unauthorized testing is illegal and unethical
-- 🎯 Created for cybersecurity education and research
-- 📝 The creator is not responsible for any misuse
-
-**Created by: Psycho (@the_psycho_of_hackers) - Cybersecurity Education Project**
+> ⚠️ **DISCLAIMER**: This tool is for educational purposes and authorized testing only. Unauthorized use against systems you do not own or have explicit permission to test is illegal and unethical. The author assumes no liability for misuse.
 
 ---
 
-## 🚀 Quick Start
-
-### Installation
-```bash
-# Clone and install
-git clone https://github.com/psychohackers/bugbounty-toolkit.git
-cd bugbounty-toolkit
-pip install -r requirements.txt
-
-# Or install the package
-pip install .
-```
-
-### Basic Usage
-```bash
-# Scan a domain
-python bugbounty_toolkit.py -d example.com
-
-# Scan with custom threads
-python bugbounty_toolkit.py -d example.com -t 20
-
-# Save results to file
-python bugbounty_toolkit.py -d example.com -o results.txt
-```
-
-### After Installation (if using setup.py)
-```bash
-bugbounty-toolkit -d example.com
-bbtoolkit -d example.com
-psycho-toolkit -d example.com
-```
-
----
-
-## 📋 Features Overview
+## Features
 
 ### 🔍 Reconnaissance
-- **Subdomain Enumeration** - Certificate Transparency, DNS brute force
-- **Port Scanning** - Nmap integration with service detection  
-- **DNS Analysis** - Comprehensive record enumeration
-- **SSL/TLS Analysis** - Certificate information extraction
+- **Passive Subdomain Enumeration** – Leverages multiple sources: crt.sh, AlienVault OTX, VirusTotal, SecurityTrails, ThreatMiner, Bufferover.run.
+- **Active Subdomain Bruteforce** – DNS resolution with custom wordlists and threading.
+- **DNS Analysis** – Retrieves A, AAAA, MX, TXT, NS, CNAME, SOA, PTR, SRV records; attempts zone transfer; detects wildcard DNS.
+- **Cloud Provider Detection** – Identifies if the target is behind Cloudflare, AWS, Google Cloud, Akamai, Fastly, etc.
 
-### 📁 Discovery
-- **Directory Bruteforce** - Common directories with extensions
-- **Endpoint Discovery** - API endpoints and sensitive files
-- **Technology Detection** - Frameworks, CMS, server identification
-- **Website Crawling** - Basic URL discovery
+### 🌐 Web Application Scanning
+- **Directory & File Bruteforce** – Discovers hidden directories and files with extension fuzzing.
+- **Endpoint Discovery** – Finds common API endpoints, configuration files, backup files, and admin interfaces.
+- **403 Bypass Testing** – Attempts various techniques to bypass forbidden directories.
+- **Technology Fingerprinting** – Detects CMS, frameworks, web servers, and client-side libraries.
 
-### 🛡️ Security Testing
-- **Vulnerability Scanning** - SQL Injection, XSS detection
-- **Security Headers Analysis** - Missing security headers
-- **Sensitive Information Discovery** - Environment files, backups
-- **Configuration Analysis** - Common misconfigurations
+### 🔬 Vulnerability Assessment
+- **SQL Injection** – Basic payload testing against URL parameters.
+- **Cross-Site Scripting (XSS)** – Reflected XSS detection.
+- **CORS Misconfiguration** – Checks for overly permissive CORS policies.
+- **Open Redirect** – Identifies redirect vulnerabilities.
+- **Local File Inclusion (LFI)** – Tests for file inclusion flaws.
+- **Server-Side Template Injection (SSTI)** – Basic payloads to detect template injection.
+- **Security Header Analysis** – Reports missing security headers.
+- **Weak SSL/TLS Ciphers** – Detects outdated or weak cipher suites.
+
+### 📦 Additional Modules
+- **Wayback Machine Integration** – Fetches historical URLs for expanded attack surface.
+- **GitHub Dorking** – Searches for exposed secrets and sensitive data (requires GitHub API key).
+- **Port Scanning** – Advanced scanning with service version detection (via Nmap) or simple socket fallback.
+- **SSL Certificate Analysis** – Extracts certificate details and checks validity.
 
 ### 📊 Reporting
-- **Comprehensive Reports** - Detailed findings with recommendations
-- **Color-coded Output** - Easy-to-read terminal interface
-- **Multiple Formats** - Console and file export
+- **Text Report** – Comprehensive summary of findings.
+- **HTML Report** – Beautiful, interactive report with tables and color-coded vulnerabilities (requires Jinja2).
 
 ---
 
-## 🛠️ Complete Installation Guide
+## Installation
 
 ### Prerequisites
-- Python 3.8 or higher
+- Python 3.6 or higher
 - pip (Python package manager)
-- Nmap (for port scanning features)
+- (Optional) Nmap installed system-wide for advanced port scanning
 
-### Windows Installation
+### Install from Source
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/psycho/bugbounty-toolkit.git
+   cd bugbounty-toolkit
+   ```
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. (Optional) Install the package globally for command-line access:
+   ```bash
+   pip install .
+   ```
+
+### Using a Virtual Environment (Recommended)
 ```bash
-# 1. Install Python from python.org
-# 2. Install Nmap from nmap.org (add to PATH)
-# 3. Install toolkit:
-pip install -r requirements.txt
-```
-
-### Linux Installation
-```bash
-sudo apt update
-sudo apt install python3 python3-pip nmap
-pip3 install -r requirements.txt
-```
-
-### macOS Installation
-```bash
-brew install python3 nmap
-pip3 install -r requirements.txt
-```
-
-### Virtual Environment (Recommended)
-```bash
-# Create virtual environment
-python -m venv venv
-
-# Activate (Windows)
-venv\Scripts\activate
-
-# Activate (Linux/macOS)
-source venv/bin/activate
-
-# Install requirements
+python3 -m venv venv
+source venv/bin/activate   # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
 ---
 
-## 📖 Complete Usage Guide
+## Usage
 
-### Command Line Arguments
-
-| Argument | Description | Default |
-|----------|-------------|---------|
-| `-d, --domain` | Target domain to scan | - |
-| `-u, --url` | Target URL to scan | - |
-| `-o, --output` | Output file for results | - |
-| `-t, --threads` | Number of threads | 10 |
-| `--timeout` | Request timeout in seconds | 10 |
-| `--user-agent` | Custom User-Agent string | - |
-| `--no-subdomain` | Skip subdomain enumeration | - |
-| `--no-ports` | Skip port scanning | - |
-| `--no-dns` | Skip DNS analysis | - |
-| `--no-ssl` | Skip SSL analysis | - |
-| `--no-directories` | Skip directory bruteforce | - |
-| `--no-endpoints` | Skip endpoint discovery | - |
-| `--no-vulnerabilities` | Skip vulnerability scanning | - |
-| `--no-technology` | Skip technology detection | - |
-
-### Advanced Usage Examples
-
+### Basic Scan
 ```bash
-# Comprehensive scan with custom settings
-python bugbounty_toolkit.py -d example.com -t 20 --timeout 30 -o full_scan.txt
-
-# Targeted scan (only subdomains and ports)
-python bugbounty_toolkit.py -d example.com --no-dns --no-directories --no-vulnerabilities
-
-# URL scan with custom user agent
-python bugbounty_toolkit.py -u https://target.com --user-agent "Mozilla/5.0 Custom"
-
-# Skip port scanning (if Nmap not available)
-python bugbounty_toolkit.py -d example.com --no-ports
+python3 bugbounty_toolkit.py -d example.com
 ```
 
----
-
-## 🔧 Module Details
-
-### 1. Subdomain Enumeration
-**Methods Used:**
-- Certificate Transparency logs (crt.sh)
-- DNS brute force with common wordlists
-- Common subdomain permutations
-- Multi-threaded discovery
-
-**Features:**
-- Finds 77+ common subdomains automatically
-- Checks certificate transparency databases
-- Uses multiple wordlist sources
-- Threaded for performance
-
-### 2. Port Scanning
-**Requirements:** Nmap installed and in PATH
-
-**Ports Scanned:**
-`21,22,23,25,53,80,110,111,135,139,143,443,445,993,995,1723,3306,3389,5432,5900,6379,27017`
-
-**Scan Types:**
-- TCP SYN scan (requires privileges)
-- TCP connect scan (fallback)
-- Service version detection
-
-### 3. Directory Bruteforce
-**Directories Checked:**
-- Admin panels (`/admin`, `/wp-admin`, `/cpanel`)
-- Configuration files (`.env`, `.git`, `.htaccess`)
-- Backup files (`/backup`, `/database.sql`)
-- Common directories (`/api`, `/uploads`, `/images`)
-
-**File Extensions:**
-`[.php, .html, .htm, .asp, .aspx, .jsp, .txt, .bak, .old]`
-
-### 4. DNS Analysis
-**Record Types:**
-`A, AAAA, MX, TXT, NS, CNAME, SOA, PTR, SRV`
-
-**Features:**
-- Comprehensive DNS enumeration
-- Subdomain takeover detection
-- Mail server configuration analysis
-
-### 5. Vulnerability Scanning
-**SQL Injection Testing:**
-- Common SQLi payloads
-- Error-based detection
-- Parameter testing on search endpoints
-
-**XSS Testing:**
-- Reflected XSS payloads
-- Multiple vector testing
-- Common parameter testing
-
-**Security Headers:**
-- X-Frame-Options
-- Content-Security-Policy
-- Strict-Transport-Security
-- X-XSS-Protection
-- Referrer-Policy
-- Permissions-Policy
-
-### 6. Technology Detection
-**Frameworks Detected:**
-- WordPress, Drupal, Joomla
-- Laravel, Django, Flask
-- React, Angular, Vue.js
-- Express.js, Ruby on Rails
-
-**Server Detection:**
-- Web server identification
-- Programming language detection
-- JavaScript libraries
-- Version information
-
-### 7. SSL/TLS Analysis
-**Certificate Information:**
-- Subject and issuer details
-- Validity periods
-- Subject Alternative Names
-- Serial numbers
-
----
-
-## 📊 Output & Reporting
-
-### Report Structure
-```
-bugbounty_report_example.com_1691234567.txt
-├── Executive Summary
-├── Subdomains Discovered
-├── Open Ports & Services
-├── Directory Structure
-├── Security Findings
-├── DNS Configuration
-├── Technology Stack
-├── SSL/TLS Information
-└── Security Recommendations
-```
-
-### Console Output Colors
-- 🟢 **Green**: Success findings
-- 🟡 **Yellow**: Warnings and information  
-- 🔴 **Red**: Errors and critical issues
-- 🔵 **Blue**: Status updates
-
-### Sample Output
+### Scan with Custom Options
 ```bash
-╔════════════════════════════════════════════════════════════════╗
-║    🛡️  BUG BOUNTY COMPREHENSIVE TOOLKIT v2.0.0 🛡️           ║
-╚════════════════════════════════════════════════════════════════╝
-
-[*] Starting comprehensive scan for: example.com
-[*] Starting Advanced Subdomain Enumeration...
-[+] Found: www.example.com
-[+] Found: mail.example.com
-[+] Found 15 subdomains
-...
-[+] Comprehensive report saved as: bugbounty_report_example.com_1691234567.txt
+python3 bugbounty_toolkit.py -u https://example.com -t 20 --timeout 15 -o results.txt --wordlist /path/to/wordlist.txt
 ```
 
----
-
-## 🐛 Troubleshooting Guide
-
-### Common Issues & Solutions
-
-**1. Nmap Not Found**
+### Skip Certain Modules
 ```bash
-# Windows: Download from nmap.org and add to PATH
-# Linux: sudo apt install nmap
-# macOS: brew install nmap
-
-# Test installation:
-nmap --version
+python3 bugbounty_toolkit.py -d example.com --no-ports --no-dns
 ```
 
-**2. Python3 Command Not Found (Windows)**
+### Provide API Keys for Enhanced Enumeration
+Create a JSON file (e.g., `keys.json`):
+```json
+{
+    "virustotal": "YOUR_VT_API_KEY",
+    "securitytrails": "YOUR_ST_API_KEY",
+    "github": "YOUR_GITHUB_TOKEN"
+}
+```
+Then run:
 ```bash
-# Use python instead of python3 on Windows
-python bugbounty_toolkit.py -d example.com
-
-# Or use py command
-py bugbounty_toolkit.py -d example.com
+python3 bugbounty_toolkit.py -d example.com --api-keys keys.json
 ```
 
-**3. Virtual Environment Issues**
+### Full Command Line Options
+```
+usage: bugbounty_toolkit.py [-h] [-d DOMAIN] [-u URL] [-o OUTPUT] [-t THREADS] [--timeout TIMEOUT] [--user-agent USER_AGENT] [--wordlist WORDLIST] [--api-keys API_KEYS]
+                            [--no-subdomain] [--no-ports] [--no-dns] [--no-ssl] [--no-directories] [--no-endpoints] [--no-vulnerabilities] [--no-technology]
+                            [--no-cloud] [--no-wayback] [--no-github]
+
+Bug Bounty Comprehensive Toolkit v2.1.0 - Educational Purpose Only
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -d DOMAIN, --domain DOMAIN
+                        Target domain to scan
+  -u URL, --url URL     Target URL to scan
+  -o OUTPUT, --output OUTPUT
+                        Output file for results
+  -t THREADS, --threads THREADS
+                        Number of threads (default: 10)
+  --timeout TIMEOUT     Request timeout in seconds (default: 10)
+  --user-agent USER_AGENT
+                        Custom User-Agent string
+  --wordlist WORDLIST   Custom wordlist path for directories/subdomains
+  --api-keys API_KEYS   JSON file containing API keys (e.g., {"virustotal":"key","github":"key"})
+
+Module Control:
+  --no-subdomain        Skip subdomain enumeration
+  --no-ports            Skip port scanning
+  --no-dns              Skip DNS analysis
+  --no-ssl              Skip SSL analysis
+  --no-directories      Skip directory bruteforce
+  --no-endpoints        Skip endpoint discovery
+  --no-vulnerabilities  Skip vulnerability scanning
+  --no-technology       Skip technology detection
+  --no-cloud            Skip cloud detection
+  --no-wayback          Skip Wayback Machine fetch
+  --no-github           Skip GitHub dorking
+```
+
+---
+
+## Examples
+
+### 1. Full Reconnaissance on a Domain
 ```bash
-# Windows activation
-venv\Scripts\activate
-
-# Linux/macOS activation  
-source venv/bin/activate
-
-# WSL from Windows directory
-source /mnt/c/path/to/venv/Scripts/activate
+python3 bugbounty_toolkit.py -d target.com -o full_scan.txt
 ```
+Generates both text and HTML reports in the current directory.
 
-**4. Module Import Errors**
+### 2. Quick Web Vulnerability Scan
 ```bash
-# Reinstall requirements
-pip install --upgrade -r requirements.txt
-
-# Force reinstall specific packages
-pip install --force-reinstall requests beautifulsoup4 python-nmap
+python3 bugbounty_toolkit.py -u https://target.com --no-subdomain --no-ports --no-dns
 ```
 
-**5. Permission Errors (Port Scanning)**
+### 3. Subdomain Takeover Potential
 ```bash
-# Run as administrator/root for SYN scans
-sudo python bugbounty_toolkit.py -d example.com  # Linux/macOS
-# Run Command Prompt as Admin on Windows
+python3 bugbounty_toolkit.py -d target.com --no-directories --no-vulnerabilities
 ```
+Focuses on subdomain enumeration and DNS records.
 
-**6. SSL Certificate Errors**
-- Tool includes proper SSL handling
-- Use `--timeout 30` for slow networks
-- Certificate transparency may timeout on slow connections
-
-### Performance Tips
-- Use `-t` to increase threads for faster scanning
-- Use `--timeout` to adjust for slow networks
-- Skip unnecessary modules with `--no-*` flags
-- Use output file `-o` to save results
-
----
-
-## 🔒 Legal & Ethical Usage
-
-### ✅ Permitted Usage
-- Testing your own systems and applications
-- Authorized penetration testing with written permission
-- Educational environments and cybersecurity courses
-- CTF (Capture The Flag) competitions
-- Security research with explicit authorization
-
-### ❌ Prohibited Usage
-- Unauthorized testing of systems
-- Malicious activities or attacks
-- Privacy violation or data theft
-- Service disruption or downtime
-- Any illegal or unethical activities
-
-### Responsible Disclosure
-If you find vulnerabilities during authorized testing:
-
-1. 📝 **Document** findings thoroughly
-2. 📧 **Contact** organization responsibly  
-3. 🔒 **Follow** their disclosure policy
-4. ⏰ **Allow** reasonable time for fixes
-5. 🚫 **Never** exploit vulnerabilities maliciously
-
----
-
-## 🤝 Contributing
-
-### Development Setup
+### 4. Using Custom Wordlist for Directory Bruteforce
 ```bash
-# Fork and clone repository
-git clone https://github.com/psychohackers/bugbounty-toolkit.git
-cd bugbounty-toolkit
-
-# Create feature branch
-git checkout -b feature/new-feature
-
-# Install in development mode
-pip install -e .
+python3 bugbounty_toolkit.py -u https://target.com --wordlist ./my_dirs.txt
 ```
 
-### Code Guidelines
-- Follow PEP 8 style guide
-- Add comments for complex logic
-- Include proper error handling
-- Test on multiple platforms
-- Update documentation
+---
 
-### Adding New Modules
-1. Create module class method in `BugBountyToolkit` class
-2. Add proper error handling and logging
-3. Include color-coded output methods
-4. Update results collection
-5. Add command-line arguments
-6. Update README documentation
+## Output
+
+The toolkit produces two types of reports:
+- **Text Report**: `bugbounty_report_<target>_<timestamp>.txt` – concise findings.
+- **HTML Report**: `bugbounty_report_<target>_<timestamp>.html` – detailed, styled report with tables.
+
+All discovered URLs and vulnerabilities are also saved to the specified output file (if provided).
 
 ---
 
-## 🎯 Development Methodology
+## Dependencies
 
-### Architecture
-```python
-BugBountyToolkit
-├── Reconnaissance (Subdomains, Ports, DNS)
-├── Discovery (Directories, Endpoints, Technology)  
-├── Security Testing (Vulnerabilities, Headers)
-└── Reporting (Console, File Export)
+| Package       | Purpose                          | Required |
+|---------------|----------------------------------|----------|
+| requests      | HTTP requests                    | Yes      |
+| beautifulsoup4| HTML parsing                     | Yes      |
+| urllib3       | HTTP library (used by requests)  | Yes      |
+| dnspython     | DNS record retrieval & zone xfr  | No*      |
+| python-nmap   | Advanced port scanning            | No*      |
+| tqdm          | Progress bars                    | No*      |
+| jinja2        | HTML report generation           | No*      |
+
+*Optional but recommended for full functionality.
+
+---
+
+## Contributing
+
+Contributions are welcome! If you have ideas for new features, bug fixes, or improved wordlists, please open an issue or submit a pull request.
+
+1. Fork the repository.
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`).
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`).
+4. Push to the branch (`git push origin feature/AmazingFeature`).
+5. Open a Pull Request.
+
+---
+
+## License
+
+This project is licensed under the **Educational Use Only** license. Redistribution and commercial use are prohibited without explicit permission. See the `LICENSE` file for details.
+
+---
+
+## Credits
+
+- **Psycho** ([@the_psycho_of_hackers](https://instagram.com/the_psycho_of_hackers)) – Creator and maintainer.
+- **Open Source Community** – For the amazing libraries that make this tool possible.
+
+---
+
+## Contact
+
+For questions, suggestions, or collaboration, reach out via Instagram: [@the_psycho_of_hackers](https://instagram.com/the_psycho_of_hackers)
+
+---
+
+**Happy Hunting!** 🕵️‍♂️🔒
 ```
-
-### Key Features
-- **Modular Design**: Each module operates independently
-- **Educational Focus**: Comprehensive code comments
-- **Error Handling**: Robust exception management
-- **Performance**: Multi-threading for faster scans
-- **User-Friendly**: Color-coded output and clear reports
-
----
-
-## 📞 Support
-
-### Documentation
-- Full code documentation in script comments
-- Example usage in README
-- Troubleshooting guide included
-
-### Issues & Bugs
-Report issues at: https://github.com/psychohackers/bugbounty-toolkit/issues
-
-### Educational Resources
-- Cybersecurity fundamentals
-- Responsible disclosure practices  
-- Bug bounty hunting guidelines
-- Security testing methodologies
-
----
-
-## 📜 License
-
-**EDUCATIONAL USE ONLY**
-
-This project is created exclusively for educational purposes in cybersecurity. Users are solely responsible for ensuring they have proper authorization before using this tool.
-
-See [LICENSE](LICENSE) file for complete terms and conditions.
-
----
-
-## ⚠️ FINAL WARNING
-
-**USE RESPONSIBLY AND ETHICALLY!**
-
-This tool is powerful and should only be used for:
-- 🎓 Education and learning
-- 🔒 Authorized security testing  
-- 📚 Cybersecurity research
-- 🛡️ Improving security posture
-
-**Always remember:**
-- Get explicit written permission
-- Follow responsible disclosure
-- Respect privacy and laws
-- Use knowledge for good
-
-**Stay Ethical, Stay Secure! 🛡️**
-
----
-*Created by Psycho (@the_psycho_of_hackers) - Cybersecurity Education Project*  
-*GitHub: https://github.com/psychohackers*
