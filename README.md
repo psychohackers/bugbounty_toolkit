@@ -211,7 +211,7 @@ Searches GitHub for:
 ```bash
 git clone https://github.com/psychohackers/bugbounty_toolkit.git
 cd bugbounty_toolkit
-pip install -r requirements.txt
+pip install -r requirements.txt --break-system-packages
 ```
 
 Optional dependencies:
