@@ -78,7 +78,7 @@ class Colors:
     END = '\033[0m'
 
 class BugBountyToolkit:
-    def __init__(self, target_domain=None, threads=10, timeout=10, user_agent=None, 
+    def __init__(self, target_domain=None, threads=10, timeout=10, user_agent=None,
                  output_file=None, api_keys=None, wordlist_path=None):
         self.target_domain = target_domain
         self.threads = threads
@@ -103,7 +103,7 @@ class BugBountyToolkit:
             'github_leaks': [],
             'cves': []
         }
-        
+
         self.session = requests.Session()
         self.session.verify = False
         self.session.headers.update({
@@ -114,6 +114,26 @@ class BugBountyToolkit:
             'Connection': 'keep-alive',
             'Upgrade-Insecure-Requests': '1'
         })
+
+    # -------------------------------------------------------------------------
+    # Utility methods
+    # -------------------------------------------------------------------------
+    def print_status(self, message):
+        print(f"{Colors.BLUE}[*] {message}{Colors.END}")
+
+    def print_success(self, message):
+        print(f"{Colors.GREEN}[+] {message}{Colors.END}")
+
+    def print_error(self, message):
+        print(f"{Colors.RED}[-] {message}{Colors.END}")
+
+    def print_warning(self, message):
+        print(f"{Colors.YELLOW}[!] {message}{Colors.END}")
+
+    def save_to_file(self, data):
+        if self.output_file:
+            with open(self.output_file, 'a', encoding='utf-8') as f:
+                f.write(data + '\n')
 
     def banner(self):
         print(f"""{Colors.RED}{Colors.BOLD}
@@ -128,13 +148,14 @@ class BugBountyToolkit:
 ╚════════════════════════════════════════════════════════════════╝
 {Colors.END}""")
 
-    # ... (existing utility methods: print_status, save_to_file, etc.)
-
+    # -------------------------------------------------------------------------
+    # Subdomain enumeration
+    # -------------------------------------------------------------------------
     def passive_subdomain_enum(self):
         """Passive subdomain enumeration using various APIs"""
         self.print_status("Starting Passive Subdomain Enumeration...")
         subdomains = set()
-        
+
         # 1. Certificate Transparency (crt.sh)
         try:
             url = f"https://crt.sh/?q=%.{self.target_domain}&output=json"
@@ -229,7 +250,7 @@ class BugBountyToolkit:
         """Active subdomain enumeration via DNS brute force"""
         self.print_status("Starting Active Subdomain Enumeration...")
         found = set()
-        
+
         # Load wordlist
         wordlists = [
             self.wordlist_path if self.wordlist_path else None,
@@ -237,25 +258,25 @@ class BugBountyToolkit:
             '/usr/share/wordlists/SecLists/Discovery/DNS/subdomains-top1million-5000.txt',
             './wordlists/subdomains.txt'
         ]
-        
+
         valid_wordlist = None
         for wl in wordlists:
             if wl and os.path.exists(wl):
                 valid_wordlist = wl
                 break
-        
+
         if not valid_wordlist:
             self.print_warning("No subdomain wordlist found. Using built-in small list.")
-            common_subs = ['www', 'mail', 'ftp', 'localhost', 'webmail', 'smtp', 'pop', 'ns1', 'webdisk', 
-                          'ns2', 'cpanel', 'whm', 'autodiscover', 'autoconfig', 'm', 'imap', 'test', 'ns', 
-                          'blog', 'pop3', 'dev', 'www2', 'admin', 'forum', 'news', 'vpn', 'ns3', 'mail2', 
-                          'new', 'mysql', 'old', 'lists', 'support', 'mobile', 'mx', 'static', 'docs', 
+            common_subs = ['www', 'mail', 'ftp', 'localhost', 'webmail', 'smtp', 'pop', 'ns1', 'webdisk',
+                          'ns2', 'cpanel', 'whm', 'autodiscover', 'autoconfig', 'm', 'imap', 'test', 'ns',
+                          'blog', 'pop3', 'dev', 'www2', 'admin', 'forum', 'news', 'vpn', 'ns3', 'mail2',
+                          'new', 'mysql', 'old', 'lists', 'support', 'mobile', 'mx', 'static', 'docs',
                           'beta', 'shop', 'sql', 'secure', 'demo', 'cp', 'calendar', 'wiki', 'api']
             subs_to_check = common_subs
         else:
             with open(valid_wordlist, 'r', encoding='utf-8', errors='ignore') as f:
                 subs_to_check = [line.strip() for line in f if line.strip() and not line.startswith('#')]
-        
+
         def check(sub):
             fqdn = f"{sub}.{self.target_domain}"
             try:
@@ -264,7 +285,7 @@ class BugBountyToolkit:
                 return fqdn
             except:
                 return None
-        
+
         with ThreadPoolExecutor(max_workers=self.threads) as executor:
             if TQDM_AVAILABLE:
                 futures = {executor.submit(check, sub): sub for sub in subs_to_check}
@@ -277,7 +298,7 @@ class BugBountyToolkit:
                     result = check(sub)
                     if result:
                         found.add(result)
-        
+
         self.results['subdomains'].extend(found)
         self.print_success(f"Found {len(found)} active subdomains")
         return list(found)
@@ -290,6 +311,9 @@ class BugBountyToolkit:
         self.results['subdomains'] = all_subs
         return all_subs
 
+    # -------------------------------------------------------------------------
+    # Cloud detection
+    # -------------------------------------------------------------------------
     def cloud_detection(self):
         """Detect if target is behind a cloud provider or CDN"""
         self.print_status("Detecting Cloud Provider / CDN...")
@@ -304,7 +328,7 @@ class BugBountyToolkit:
                 'Fastly': ['23.235.32.0/20', '104.156.80.0/20', '146.75.0.0/16', '151.101.0.0/16', '199.27.128.0/21'],
                 'CloudFront': ['13.32.0.0/15', '13.224.0.0/14', '13.248.0.0/14', '52.84.0.0/15', '54.182.0.0/16', '54.192.0.0/16', '54.230.0.0/16', '54.239.128.0/18', '54.239.192.0/19', '64.252.64.0/18', '71.152.0.0/17', '204.246.164.0/22', '204.246.168.0/22', '205.251.192.0/19', '216.137.32.0/19']
             }
-            
+
             ip_obj = ipaddress.ip_address(ip)
             for provider, cidrs in cloud_ranges.items():
                 for cidr in cidrs:
@@ -312,7 +336,7 @@ class BugBountyToolkit:
                         self.results['cloud_provider'] = provider
                         self.print_success(f"Target is using {provider}")
                         return provider
-            
+
             # Check headers for CDN
             try:
                 resp = self.session.get(f"https://{self.target_domain}", timeout=5)
@@ -321,7 +345,7 @@ class BugBountyToolkit:
                 via = headers.get('Via', '')
                 cf_ray = headers.get('CF-Ray', '')
                 x_amz_cf_id = headers.get('X-Amz-Cf-Id', '')
-                
+
                 if 'cloudflare' in server.lower() or cf_ray:
                     self.results['cloud_provider'] = 'Cloudflare'
                 elif 'cloudfront' in server.lower() or x_amz_cf_id:
@@ -338,19 +362,21 @@ class BugBountyToolkit:
                     self.results['cloud_provider'] = 'Unknown/None'
             except:
                 pass
-                
+
         except Exception as e:
             self.print_error(f"Cloud detection failed: {e}")
-        
+
         return self.results.get('cloud_provider')
 
-    # Enhanced port scanning with version detection
+    # -------------------------------------------------------------------------
+    # Port scanning
+    # -------------------------------------------------------------------------
     def port_scanning(self, target_ip=None, ports=None):
         """Advanced port scanning with service version detection"""
         if not NMAP_AVAILABLE:
             self.print_error("python-nmap not available. Using socket fallback.")
             return self._port_scan_socket(target_ip, ports)
-        
+
         self.print_status("Starting Advanced Port Scanning with Nmap...")
         if not target_ip:
             try:
@@ -358,7 +384,7 @@ class BugBountyToolkit:
             except:
                 self.print_error("Could not resolve domain")
                 return []
-        
+
         nm = nmap.PortScanner()
         port_spec = ports or '21,22,23,25,53,80,110,111,135,139,143,443,445,993,995,1723,3306,3389,5432,5900,6379,8080,8443,9090,27017'
         try:
@@ -388,7 +414,7 @@ class BugBountyToolkit:
             ports = [21,22,23,25,53,80,110,111,135,139,143,443,445,993,995,1723,3306,3389,5432,5900,6379,8080,8443,9090,27017]
         else:
             ports = [int(p.strip()) for p in ports.split(',')]
-        
+
         open_ports = []
         def check_port(port):
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -402,21 +428,23 @@ class BugBountyToolkit:
                 open_ports.append((port, 'tcp', service, '', '', ''))
                 self.print_success(f"Port {port}/tcp open - {service}")
             sock.close()
-        
+
         with ThreadPoolExecutor(max_workers=self.threads) as executor:
             if TQDM_AVAILABLE:
                 list(tqdm(executor.map(check_port, ports), total=len(ports), desc="Port Scan", unit="port"))
             else:
                 executor.map(check_port, ports)
-        
+
         self.results['open_ports'] = open_ports
         return open_ports
 
-    # Advanced directory bruteforce with fuzzing
+    # -------------------------------------------------------------------------
+    # Directory bruteforce and 403 bypass
+    # -------------------------------------------------------------------------
     def directory_bruteforce(self, base_url, extensions=None):
         """Directory brute force with status code filtering and fuzzing"""
         self.print_status("Starting Advanced Directory Bruteforce...")
-        
+
         # Load wordlist
         wordlist_path = self.wordlist_path or './wordlists/directories.txt'
         if os.path.exists(wordlist_path):
@@ -424,12 +452,12 @@ class BugBountyToolkit:
                 dirs = [line.strip() for line in f if line.strip() and not line.startswith('#')]
         else:
             # Built-in small list
-            dirs = ['admin', 'api', 'backup', 'css', 'js', 'images', 'img', 'uploads', 'files', 
-                    'include', 'inc', 'src', 'source', 'test', 'tests', 'temp', 'tmp', 'logs', 
+            dirs = ['admin', 'api', 'backup', 'css', 'js', 'images', 'img', 'uploads', 'files',
+                    'include', 'inc', 'src', 'source', 'test', 'tests', 'temp', 'tmp', 'logs',
                     'config', '.git', '.svn', '.env', 'vendor', 'node_modules']
-        
+
         extensions = extensions or ['', '.php', '.html', '.htm', '.asp', '.aspx', '.jsp', '.do', '.action', '.json', '.xml']
-        
+
         found = []
         def check(path):
             for ext in extensions:
@@ -444,18 +472,17 @@ class BugBountyToolkit:
                         break  # Found with one extension, stop trying others
                 except:
                     pass
-        
+
         if TQDM_AVAILABLE:
             with ThreadPoolExecutor(max_workers=self.threads) as executor:
                 list(tqdm(executor.map(check, dirs), total=len(dirs), desc="Dir brute", unit="path"))
         else:
             with ThreadPoolExecutor(max_workers=self.threads) as executor:
                 executor.map(check, dirs)
-        
+
         self.results['directories'] = found
         return found
 
-    # 403 bypass testing
     def bypass_403(self, base_url):
         """Test for 403 bypass techniques on discovered directories"""
         self.print_status("Testing for 403 bypass techniques...")
@@ -482,7 +509,7 @@ class BugBountyToolkit:
                     {'X-Forwarded-Host': '127.0.0.1'},
                     {'X-Real-IP': '127.0.0.1'},
                 ]
-                
+
                 for payload in payloads:
                     test_url = base_url + payload
                     try:
@@ -493,7 +520,7 @@ class BugBountyToolkit:
                             break
                     except:
                         pass
-                
+
                 for headers in headers_bypass:
                     try:
                         resp = self.session.get(base_url + path, headers=headers, timeout=5)
@@ -503,11 +530,13 @@ class BugBountyToolkit:
                             break
                     except:
                         pass
-        
+
         self.results['vulnerabilities'].extend([('403 Bypass', b[1], b[2]) for b in bypasses])
         return bypasses
 
-    # Wayback Machine integration
+    # -------------------------------------------------------------------------
+    # Wayback Machine
+    # -------------------------------------------------------------------------
     def wayback_machine(self):
         """Fetch historical URLs from Wayback Machine"""
         self.print_status("Fetching URLs from Wayback Machine...")
@@ -522,19 +551,21 @@ class BugBountyToolkit:
                         urls.add(entry[0])
         except Exception as e:
             self.print_error(f"Wayback Machine failed: {e}")
-        
+
         self.results['wayback_urls'] = list(urls)
         self.print_success(f"Found {len(urls)} historical URLs")
         return list(urls)
 
-    # GitHub dorking for exposed secrets (requires API key)
+    # -------------------------------------------------------------------------
+    # GitHub dorking
+    # -------------------------------------------------------------------------
     def github_dorking(self):
         """Search GitHub for exposed secrets related to domain"""
         gh_key = self.api_keys.get('github')
         if not gh_key:
             self.print_warning("GitHub API key not provided. Skipping GitHub dorking.")
             return []
-        
+
         self.print_status("Searching GitHub for exposed secrets...")
         queries = [
             f'"{self.target_domain}" api_key',
@@ -545,10 +576,10 @@ class BugBountyToolkit:
             f'"{self.target_domain}" .env',
             f'"{self.target_domain}" config',
         ]
-        
+
         headers = {'Authorization': f'token {gh_key}'}
         results = []
-        
+
         for query in queries:
             try:
                 url = f"https://api.github.com/search/code?q={urllib.parse.quote(query)}"
@@ -566,28 +597,56 @@ class BugBountyToolkit:
                     break
             except Exception as e:
                 self.print_error(f"GitHub search failed: {e}")
-        
+
         self.results['github_leaks'] = results
         return results
 
-    # Enhanced vulnerability scanning
+    # -------------------------------------------------------------------------
+    # Vulnerability scanning (SQLi, XSS, CORS, Open Redirect, LFI, SSTI)
+    # -------------------------------------------------------------------------
     def advanced_vuln_scan(self, base_url):
         """Run advanced vulnerability checks"""
         self.print_status("Running Advanced Vulnerability Scanning...")
-        
-        # Existing SQLi and XSS checks (from previous version)
+
         self._sqli_scan(base_url)
         self._xss_scan(base_url)
-        
-        # New checks
         self._cors_misconfig(base_url)
         self._open_redirect(base_url)
         self._lfi_scan(base_url)
         self._ssti_scan(base_url)
-        self._cve_scan()  # Optional external API
-        
-        # Security headers (already done)
-        # ...
+        # self._cve_scan()  # Optional external API
+
+    def _sqli_scan(self, base_url):
+        """Basic SQL injection detection"""
+        self.print_status("Testing for SQL Injection...")
+        payloads = ["'", "\"", "1' OR '1'='1", "1\" OR \"1\"=\"1", "' OR '1'='1' --", "\" OR \"1\"=\"1\" --"]
+        for param in ['id', 'page', 'user', 'name', 'category']:
+            for payload in payloads:
+                test_url = f"{base_url}?{param}={urllib.parse.quote(payload)}"
+                try:
+                    resp = self.session.get(test_url, timeout=5)
+                    # Check for SQL errors in response
+                    errors = ['sql', 'mysql', 'syntax error', 'unclosed quotation mark', 'you have an error in your sql']
+                    if any(error in resp.text.lower() for error in errors):
+                        self.results['vulnerabilities'].append(('SQLi', test_url, f'Possible SQL injection with {payload}'))
+                        self.print_error(f"SQLi detected: {test_url}")
+                        break
+                except:
+                    pass
+
+    def _xss_scan(self, base_url):
+        """Basic XSS detection"""
+        self.print_status("Testing for XSS...")
+        payload = "<script>alert('XSS')</script>"
+        for param in ['q', 's', 'search', 'id', 'page']:
+            test_url = f"{base_url}?{param}={urllib.parse.quote(payload)}"
+            try:
+                resp = self.session.get(test_url, timeout=5)
+                if payload in resp.text:
+                    self.results['vulnerabilities'].append(('XSS', test_url, f'Reflected XSS with {payload}'))
+                    self.print_error(f"XSS detected: {test_url}")
+            except:
+                pass
 
     def _cors_misconfig(self, base_url):
         """Check for CORS misconfiguration"""
@@ -673,12 +732,9 @@ class BugBountyToolkit:
                 except:
                     pass
 
-    def _cve_scan(self):
-        """Check for known CVEs using external API (e.g., Vulners)"""
-        # This would require a CVE database or API. For simplicity, we'll just note it's not implemented.
-        pass
-
-    # Technology detection enhancement with Wappalyzer-like detection
+    # -------------------------------------------------------------------------
+    # Technology detection
+    # -------------------------------------------------------------------------
     def technology_detection(self, base_url):
         """Enhanced technology detection using fingerprinting"""
         self.print_status("Detecting technologies...")
@@ -703,12 +759,12 @@ class BugBountyToolkit:
             'jQuery': [r'jquery'],
             'Bootstrap': [r'bootstrap'],
         }
-        
+
         try:
             resp = self.session.get(base_url, timeout=10)
             headers = resp.headers
             html = resp.text.lower()
-            
+
             detected = []
             # Check headers
             server = headers.get('Server', '')
@@ -717,14 +773,14 @@ class BugBountyToolkit:
                 detected.append(('Server', server))
             if powered_by:
                 detected.append(('X-Powered-By', powered_by))
-            
+
             # Check HTML
             for tech, patterns in fingerprints.items():
                 for pattern in patterns:
                     if re.search(pattern, html, re.I) or re.search(pattern, server, re.I) or re.search(pattern, powered_by, re.I):
                         detected.append(('Technology', tech))
                         break
-            
+
             # Deduplicate
             tech_list = list(set([(cat, val) for cat, val in detected]))
             self.results['technologies'] = tech_list
@@ -733,16 +789,18 @@ class BugBountyToolkit:
         except Exception as e:
             self.print_error(f"Technology detection failed: {e}")
 
-    # Enhanced DNS analysis (zone transfer, wildcard detection)
+    # -------------------------------------------------------------------------
+    # DNS analysis
+    # -------------------------------------------------------------------------
     def dns_analysis(self):
         """Comprehensive DNS analysis including zone transfer attempts"""
         if not DNS_AVAILABLE:
             self.print_error("dnspython not available. Skipping DNS analysis.")
             return {}
-        
+
         self.print_status("Starting Comprehensive DNS Analysis...")
         records = {}
-        
+
         # Standard records
         for rtype in ['A', 'AAAA', 'MX', 'TXT', 'NS', 'CNAME', 'SOA', 'PTR', 'SRV']:
             try:
@@ -753,7 +811,7 @@ class BugBountyToolkit:
                     print(f"    {Colors.CYAN}{r}{Colors.END}")
             except:
                 pass
-        
+
         # Attempt zone transfer
         try:
             ns_answers = dns.resolver.resolve(self.target_domain, 'NS')
@@ -767,7 +825,7 @@ class BugBountyToolkit:
                     pass
         except:
             pass
-        
+
         # Wildcard detection
         try:
             random_sub = f"rand{random.randint(1000,9999)}.{self.target_domain}"
@@ -776,11 +834,13 @@ class BugBountyToolkit:
             self.print_warning("Wildcard DNS detected")
         except:
             records['Wildcard'] = False
-        
+
         self.results['dns_records'] = records
         return records
 
-    # SSL analysis (keep existing, maybe add weak cipher check)
+    # -------------------------------------------------------------------------
+    # SSL analysis
+    # -------------------------------------------------------------------------
     def ssl_analysis(self, domain):
         """SSL/TLS certificate analysis with weak cipher detection"""
         self.print_status("Starting SSL/TLS Analysis...")
@@ -789,10 +849,11 @@ class BugBountyToolkit:
             with socket.create_connection((domain, 443), timeout=10) as sock:
                 with context.wrap_socket(sock, server_hostname=domain) as ssock:
                     cert = ssock.getpeercert()
-                    
-                    subject = dict(x[0] for x in cert['subject'])
-                    issuer = dict(x[0] for x in cert['issuer'])
-                    
+
+                    # Correct parsing of subject and issuer
+                    subject = {k: v for (k, v) in cert['subject']}
+                    issuer = {k: v for (k, v) in cert['issuer']}
+
                     ssl_info = {
                         'subject': subject,
                         'issuer': issuer,
@@ -803,32 +864,66 @@ class BugBountyToolkit:
                         'subjectAltName': cert.get('subjectAltName'),
                         'cipher': ssock.cipher(),
                     }
-                    
+
                     # Check for weak ciphers (simplified)
                     cipher_name = ssock.cipher()[0]
                     weak_ciphers = ['RC4', 'DES', 'MD5', 'EXPORT', 'NULL']
                     if any(w in cipher_name for w in weak_ciphers):
                         self.results['vulnerabilities'].append(('Weak SSL Cipher', domain, f'Cipher: {cipher_name}'))
                         self.print_error(f"Weak cipher detected: {cipher_name}")
-                    
+
                     self.print_success("SSL Certificate Information:")
                     print(f"    Subject: {subject.get('commonName')}")
                     print(f"    Issuer: {issuer.get('organizationName')}")
                     print(f"    Valid until: {cert.get('notAfter')}")
-                    
+
                     self.results['ssl_info'] = ssl_info
                     return ssl_info
         except Exception as e:
             self.print_error(f"SSL analysis failed: {e}")
             return {}
 
-    # HTML Report Generation
+    # -------------------------------------------------------------------------
+    # Endpoint discovery
+    # -------------------------------------------------------------------------
+    def endpoint_discovery(self, base_url):
+        """Discover endpoints from JavaScript files and other sources"""
+        self.print_status("Discovering endpoints...")
+        endpoints = set()
+        try:
+            resp = self.session.get(base_url, timeout=10)
+            soup = BeautifulSoup(resp.text, 'html.parser')
+            # Find script tags with src
+            for script in soup.find_all('script', src=True):
+                js_url = urllib.parse.urljoin(base_url, script['src'])
+                try:
+                    js_resp = self.session.get(js_url, timeout=5)
+                    # Look for URLs in JS
+                    urls = re.findall(r'["\'](/[^"\']*?)["\']', js_resp.text)
+                    for u in urls:
+                        if u.startswith('/') and not u.startswith('//'):
+                            endpoints.add(urllib.parse.urljoin(base_url, u))
+                except:
+                    pass
+            # Also look for links
+            for a in soup.find_all('a', href=True):
+                href = a['href']
+                if href.startswith('/') and not href.startswith('//'):
+                    endpoints.add(urllib.parse.urljoin(base_url, href))
+            self.results['endpoints'] = list(endpoints)
+            self.print_success(f"Found {len(endpoints)} endpoints")
+        except Exception as e:
+            self.print_error(f"Endpoint discovery failed: {e}")
+
+    # -------------------------------------------------------------------------
+    # Report generation
+    # -------------------------------------------------------------------------
     def generate_html_report(self):
         """Generate an HTML report with findings"""
         if not JINJA2_AVAILABLE:
             self.print_warning("Jinja2 not installed. Skipping HTML report.")
             return
-        
+
         template_str = """
 <!DOCTYPE html>
 <html>
@@ -983,45 +1078,89 @@ class BugBountyToolkit:
                                        date=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                                        version=__version__,
                                        results=self.results)
-        
+
         filename = f"bugbounty_report_{self.target_domain}_{int(time.time())}.html"
         with open(filename, 'w', encoding='utf-8') as f:
             f.write(html_content)
         self.print_success(f"HTML report saved: {filename}")
         return filename
 
-    # Generate plain text report (existing)
     def generate_report(self):
         """Generate comprehensive text report"""
-        # ... (existing implementation, but we'll keep it simple)
         self.print_status("Generating Text Report...")
         report_lines = []
         report_lines.append("BUG BOUNTY TOOLKIT REPORT v2.1.0")
-        report_lines.append("=" * 50)
+        report_lines.append("=" * 60)
         report_lines.append(f"Target: {self.target_domain}")
         report_lines.append(f"Scan Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        report_lines.append(f"Subdomains Found: {len(self.results['subdomains'])}")
-        report_lines.append(f"Open Ports: {len(self.results['open_ports'])}")
-        report_lines.append(f"Directories: {len(self.results['directories'])}")
-        report_lines.append(f"Vulnerabilities: {len(self.results['vulnerabilities'])}")
         report_lines.append("")
-        # ... (add more sections)
-        
+        report_lines.append("=== SUBDOMAINS ===")
+        for sub in self.results['subdomains']:
+            report_lines.append(f"  {sub}")
+        report_lines.append("")
+        report_lines.append("=== OPEN PORTS ===")
+        for port in self.results['open_ports']:
+            report_lines.append(f"  {port[0]}/{port[1]} - {port[2]} {port[3]} {port[4]} {port[5]}")
+        report_lines.append("")
+        report_lines.append("=== DIRECTORIES ===")
+        for dir in self.results['directories']:
+            report_lines.append(f"  {dir[0]} [{dir[1]}] Size:{dir[2]}")
+        report_lines.append("")
+        report_lines.append("=== VULNERABILITIES ===")
+        for vuln in self.results['vulnerabilities']:
+            report_lines.append(f"  {vuln[0]} - {vuln[1]} - {vuln[2]}")
+        report_lines.append("")
+        report_lines.append("=== ENDPOINTS ===")
+        for ep in self.results['endpoints']:
+            report_lines.append(f"  {ep}")
+        report_lines.append("")
+        report_lines.append("=== TECHNOLOGIES ===")
+        for cat, val in self.results['technologies']:
+            report_lines.append(f"  {cat}: {val}")
+        report_lines.append("")
+        report_lines.append("=== DNS RECORDS ===")
+        for rtype, recs in self.results['dns_records'].items():
+            report_lines.append(f"  {rtype}: {', '.join(recs)}")
+        report_lines.append("")
+        report_lines.append("=== SSL INFO ===")
+        if self.results['ssl_info']:
+            report_lines.append(f"  Subject: {self.results['ssl_info'].get('subject', {}).get('commonName', 'N/A')}")
+            report_lines.append(f"  Issuer: {self.results['ssl_info'].get('issuer', {}).get('organizationName', 'N/A')}")
+            report_lines.append(f"  Valid Until: {self.results['ssl_info'].get('notAfter', 'N/A')}")
+        else:
+            report_lines.append("  No SSL info")
+        report_lines.append("")
+        report_lines.append("=== CLOUD PROVIDER ===")
+        report_lines.append(f"  {self.results.get('cloud_provider', 'Unknown')}")
+        report_lines.append("")
+        report_lines.append("=== WAYBACK MACHINE URLS (first 20) ===")
+        for url in self.results['wayback_urls'][:20]:
+            report_lines.append(f"  {url}")
+        report_lines.append("")
+        report_lines.append("=== GITHUB LEAKS ===")
+        for leak in self.results['github_leaks']:
+            report_lines.append(f"  Query: {leak[0]}, Repo: {leak[1]}, Path: {leak[2]}, URL: {leak[3]}")
+        report_lines.append("")
+        report_lines.append("=" * 60)
+        report_lines.append("Report generated by Psycho Bug Bounty Toolkit - Educational Purpose Only")
+
         filename = f"bugbounty_report_{self.target_domain}_{int(time.time())}.txt"
         with open(filename, 'w', encoding='utf-8') as f:
             f.write("\n".join(report_lines))
         self.print_success(f"Text report saved: {filename}")
         return filename
 
+    # -------------------------------------------------------------------------
     # Main orchestration
+    # -------------------------------------------------------------------------
     def run_complete_scan(self, target_domain, options=None):
         """Run complete bug bounty reconnaissance with advanced options"""
         self.target_domain = target_domain
         self.banner()
-        
+
         options = options or {}
         self.print_status(f"Starting comprehensive scan for: {target_domain}")
-        
+
         # Ensure URL has scheme
         if not target_domain.startswith(('http://', 'https://')):
             base_url = f"https://{target_domain}"
@@ -1030,49 +1169,49 @@ class BugBountyToolkit:
             # Extract domain from URL
             parsed = urllib.parse.urlparse(base_url)
             self.target_domain = parsed.netloc
-        
+
         try:
             # Run selected modules
             if options.get('subdomain', True):
                 self.subdomain_enumeration()
-            
+
             if options.get('cloud', True):
                 self.cloud_detection()
-            
+
             if options.get('ports', True):
                 self.port_scanning()
-            
+
             if options.get('dns', True) and DNS_AVAILABLE:
                 self.dns_analysis()
-            
+
             if options.get('ssl', True):
                 self.ssl_analysis(self.target_domain)
-            
+
             if options.get('wayback', True):
                 self.wayback_machine()
-            
+
             if options.get('directories', True):
                 self.directory_bruteforce(base_url)
                 self.bypass_403(base_url)
-            
+
             if options.get('endpoints', True):
-                self.endpoint_discovery(base_url)  # from previous version
-            
+                self.endpoint_discovery(base_url)
+
             if options.get('vulnerabilities', True):
                 self.advanced_vuln_scan(base_url)
-            
+
             if options.get('technology', True):
                 self.technology_detection(base_url)
-            
+
             if options.get('github', True) and self.api_keys.get('github'):
                 self.github_dorking()
-            
+
             # Generate reports
             self.generate_report()
             self.generate_html_report()
-            
+
             self.print_success("Complete! All modules finished successfully.")
-            
+
         except KeyboardInterrupt:
             self.print_error("Scan interrupted by user")
         except Exception as e:
@@ -1096,7 +1235,7 @@ Disclaimer:
   Created by Psycho (@the_psycho_of_hackers)
         """
     )
-    
+
     parser.add_argument('-d', '--domain', help='Target domain to scan')
     parser.add_argument('-u', '--url', help='Target URL to scan')
     parser.add_argument('-o', '--output', help='Output file for results')
@@ -1105,7 +1244,7 @@ Disclaimer:
     parser.add_argument('--user-agent', help='Custom User-Agent string')
     parser.add_argument('--wordlist', help='Custom wordlist path for directories/subdomains')
     parser.add_argument('--api-keys', help='JSON file containing API keys (e.g., {"virustotal":"key","github":"key"})')
-    
+
     # Module selection
     parser.add_argument('--no-subdomain', action='store_true', help='Skip subdomain enumeration')
     parser.add_argument('--no-ports', action='store_true', help='Skip port scanning')
@@ -1118,9 +1257,9 @@ Disclaimer:
     parser.add_argument('--no-cloud', action='store_true', help='Skip cloud detection')
     parser.add_argument('--no-wayback', action='store_true', help='Skip Wayback Machine fetch')
     parser.add_argument('--no-github', action='store_true', help='Skip GitHub dorking')
-    
+
     args = parser.parse_args()
-    
+
     # Load API keys if provided
     api_keys = {}
     if args.api_keys:
@@ -1129,7 +1268,7 @@ Disclaimer:
                 api_keys = json.load(f)
         except Exception as e:
             print(f"Error loading API keys: {e}")
-    
+
     # Build options dictionary
     options = {
         'subdomain': not args.no_subdomain,
@@ -1144,7 +1283,7 @@ Disclaimer:
         'wayback': not args.no_wayback,
         'github': not args.no_github,
     }
-    
+
     toolkit = BugBountyToolkit(
         threads=args.threads,
         timeout=args.timeout,
@@ -1153,7 +1292,7 @@ Disclaimer:
         api_keys=api_keys,
         wordlist_path=args.wordlist
     )
-    
+
     if args.domain:
         toolkit.run_complete_scan(args.domain, options)
     elif args.url:
@@ -1181,6 +1320,6 @@ if __name__ == "__main__":
 ║  Cybersecurity Education Project                               ║
 ╚════════════════════════════════════════════════════════════════╝
 {Colors.END}""")
-    
+
     time.sleep(2)
     main()
