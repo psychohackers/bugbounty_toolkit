@@ -1392,165 +1392,623 @@ class BugBountyToolkit:
     # Report generation
     # -------------------------------------------------------------------------
     def generate_html_report(self):
-        """Generate an HTML report with findings"""
+        """Generate a premium dark-mode interactive HTML report"""
         if not JINJA2_AVAILABLE:
             self.print_warning("Jinja2 not installed. Skipping HTML report.")
             return
 
         template_str = """
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bug Bounty Report - {{ target }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
-        h1 { color: #333; }
-        h2 { color: #555; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
-        .summary { background: #e8f4f8; padding: 10px; border-radius: 5px; }
-        .vuln { background: #ffe6e6; padding: 5px; border-left: 4px solid #cc0000; margin: 5px 0; }
-        .info { background: #e6ffe6; padding: 5px; border-left: 4px solid #00cc00; }
-        .warning { background: #fff3e6; padding: 5px; border-left: 4px solid #ff9900; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #4CAF50; color: white; }
-        tr:nth-child(even) { background-color: #f2f2f2; }
-        .footer { margin-top: 30px; font-size: 0.8em; color: #777; text-align: center; }
+        :root {
+            --bg-color: #0a0b10;
+            --card-bg: rgba(20, 22, 30, 0.7);
+            --accent-cyan: #00f2fe;
+            --accent-green: #00ff87;
+            --accent-red: #ff3366;
+            --accent-orange: #ff9900;
+            --text-primary: #e0e0e0;
+            --text-secondary: #94a3b8;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --glass-blur: blur(12px);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(0, 242, 254, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(0, 255, 135, 0.05) 0%, transparent 40%);
+        }
+
+        .container { display: flex; min-height: 100vh; }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background: rgba(15, 17, 26, 0.95);
+            border-right: 1px solid var(--border-color);
+            position: fixed;
+            height: 100vh;
+            padding: 30px 20px;
+            backdrop-filter: var(--glass-blur);
+            z-index: 100;
+        }
+
+        .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-menu { list-style: none; }
+        .nav-item {
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .nav-item:hover, .nav-item.active {
+            background: rgba(0, 242, 254, 0.1);
+            color: var(--accent-cyan);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 260px;
+            flex: 1;
+            padding: 40px;
+            max-width: 1400px;
+        }
+
+        header {
+            margin-bottom: 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+        .header-title h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+            background: linear-gradient(to right, var(--accent-cyan), var(--accent-green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .header-meta { font-size: 0.85rem; color: var(--text-secondary); }
+
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .stat-card {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 15px;
+            border: 1px solid var(--border-color);
+            backdrop-filter: var(--glass-blur);
+            transition: transform 0.3s ease;
+        }
+        .stat-card:hover { transform: translateY(-5px); border-color: var(--accent-cyan); }
+        .stat-label { font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; }
+        .stat-value { font-size: 2rem; font-weight: 700; color: #fff; margin-top: 5px; }
+
+        /* Sections */
+        .section { display: none; animation: fadeIn 0.4s ease; }
+        .section.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 15px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 30px;
+            overflow: hidden;
+            backdrop-filter: var(--glass-blur);
+        }
+        .card-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(255, 255, 255, 0.03);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-title { font-weight: 600; font-size: 1.1rem; color: var(--accent-cyan); }
+        .card-body { padding: 25px; }
+
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { text-align: left; padding: 12px 15px; color: var(--text-secondary); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; border-bottom: 2px solid var(--border-color); }
+        td { padding: 12px 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; color: var(--text-primary); }
+        tr:hover { background: rgba(255, 255, 255, 0.02); }
+
+        /* Vulcan Cards */
+        .vuln-item {
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            margin-bottom: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+        .vuln-header {
+            padding: 15px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .vuln-header:hover { background: rgba(255, 255, 255, 0.05); }
+        .vuln-type { font-weight: 600; font-size: 1rem; flex: 1; }
+        .vuln-content { 
+            padding: 0 20px 20px 20px; 
+            display: none; 
+            border-top: 1px solid var(--border-color);
+            margin-top: 10px;
+            padding-top: 15px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        .vuln-item.open .vuln-content { display: block; }
+        
+        .badge { padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+        .badge-critical { background: rgba(255, 51, 102, 0.2); color: #ff3366; border: 1px solid rgba(255, 51, 102, 0.3); }
+        .badge-high { background: rgba(255, 153, 0, 0.2); color: #ff9900; border: 1px solid rgba(255, 153, 0, 0.3); }
+        .badge-medium { background: rgba(255, 255, 0, 0.2); color: #ffff00; border: 1px solid rgba(255, 255, 0, 0.3); }
+        .badge-low { background: rgba(0, 242, 254, 0.2); color: #00f2fe; border: 1px solid rgba(0, 242, 254, 0.3); }
+        .badge-info { background: rgba(0, 255, 135, 0.2); color: #00ff87; border: 1px solid rgba(0, 255, 135, 0.3); }
+
+        /* Search/Filter */
+        .search-container { position: relative; margin-bottom: 20px; }
+        .search-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            padding: 10px 15px;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        .search-input:focus { border-color: var(--accent-cyan); box-shadow: 0 0 10px rgba(0, 242, 254, 0.2); }
+
+        .btn-copy {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        .btn-copy:hover { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            text-align: center;
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 900px) {
+            .sidebar { width: 70px; padding: 30px 10px; }
+            .logo { display: none; }
+            .nav-item span { display: none; }
+            .main-content { margin-left: 70px; padding: 20px; }
+        }
     </style>
 </head>
 <body>
-    <h1>Bug Bounty Comprehensive Report</h1>
-    <p><strong>Target:</strong> {{ target }}</p>
-    <p><strong>Scan Date:</strong> {{ date }}</p>
-    <p><strong>Tool Version:</strong> {{ version }}</p>
-    
-    <div class="summary">
-        <h2>Executive Summary</h2>
-        <ul>
-            <li>Subdomains Found: {{ results.subdomains|length }}</li>
-            <li>Open Ports: {{ results.open_ports|length }}</li>
-            <li>Directories Found: {{ results.directories|length }}</li>
-            <li>Endpoints Found: {{ results.endpoints|length }}</li>
-            <li>Vulnerabilities Found: {{ results.vulnerabilities|length }}</li>
-            <li>Technologies Detected: {{ results.technologies|length }}</li>
-            <li>Historical URLs: {{ results.wayback_urls|length }}</li>
-            <li>GitHub Leaks: {{ results.github_leaks|length }}</li>
-        </ul>
+    <div class="container">
+        <!-- Sidebar Navigation -->
+        <div class="sidebar">
+            <div class="logo">
+                <span>🛡️TOOLKIT</span>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item active" onclick="showSection('summary')">📊 <span>Summary</span></li>
+                <li class="nav-item" onclick="showSection('vulnerabilities')">🔴 <span>Findings</span></li>
+                <li class="nav-item" onclick="showSection('subdomains')">🌐 <span>Subdomains</span></li>
+                <li class="nav-item" onclick="showSection('ports')">🔌 <span>Ports</span></li>
+                <li class="nav-item" onclick="showSection('directories')">📁 <span>Directories</span></li>
+                <li class="nav-item" onclick="showSection('endpoints')">🔗 <span>Endpoints</span></li>
+                <li class="nav-item" onclick="showSection('technologies')">⚙️ <span>Technologies</span></li>
+                <li class="nav-item" onclick="showSection('dns')">🔡 <span>DNS</span></li>
+                <li class="nav-item" onclick="showSection('ssl')">🔒 <span>SSL/TLS</span></li>
+                {% if results.wayback_urls %}
+                <li class="nav-item" onclick="showSection('wayback')">🕰️ <span>Wayback</span></li>
+                {% endif %}
+                {% if results.github_leaks %}
+                <li class="nav-item" onclick="showSection('github')">🐙 <span>github</span></li>
+                {% endif %}
+            </ul>
+        </div>
+
+        <div class="main-content">
+            <header>
+                <div class="header-title">
+                    <h1>Security Reconnaissance Report</h1>
+                    <div class="header-meta">
+                        Target: <span style="color: var(--accent-cyan)">{{ target }}</span> &nbsp;|&nbsp; 
+                        Date: {{ date }} &nbsp;|&nbsp; 
+                        WAF: <span style="color: var(--accent-green)">{{ results.waf or 'None Detected' }}</span>
+                    </div>
+                </div>
+                <div class="header-meta">v{{ version }}</div>
+            </header>
+
+            <!-- Stat Cards -->
+            <div class="dashboard-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Vulnerabilities</div>
+                    <div class="stat-value" style="color: var(--accent-red)">{{ results.vulnerabilities|length }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Subdomains</div>
+                    <div class="stat-value">{{ results.subdomains|length }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Endpoints</div>
+                    <div class="stat-value">{{ results.endpoints|length }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Security Headers</div>
+                    <div class="stat-value">{{ results.security_headers|length }}</div>
+                </div>
+            </div>
+
+            <!-- Dashboard Summary -->
+            <section id="summary" class="section active">
+                <div class="card">
+                    <div class="card-header"><span class="card-title">Executive Summary</span></div>
+                    <div class="card-body">
+                        <p style="margin-bottom: 20px; font-size: 0.95rem; color: var(--text-secondary);">
+                            Comprehensive scan results for <b>{{ target }}</b>. High-level findings summary:
+                        </p>
+                        <div style="display: flex; flex-wrap: wrap; gap: 30px;">
+                            <div>
+                                <h4 style="color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">Infrastructure</h4>
+                                <ul style="list-style: none; margin-top: 10px;">
+                                    <li>⚡ Cloud Provider: <b>{{ results.cloud_provider or 'Unknown' }}</b></li>
+                                    <li>🌐 Total Subdomains: <b>{{ results.subdomains|length }}</b></li>
+                                    <li>🔌 Open Ports: <b>{{ results.open_ports|length }}</b></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 style="color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">Web & Content</h4>
+                                <ul style="list-style: none; margin-top: 10px;">
+                                    <li>📂 Directories: <b>{{ results.directories|length }}</b></li>
+                                    <li>🔗 Active Endpoints: <b>{{ results.endpoints|length }}</b></li>
+                                    <li>🛠 Technologies: <b>{{ results.technologies|length }}</b></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Vulnerabilities Section -->
+            <section id="vulnerabilities" class="section">
+                <div class="card">
+                    <div class="card-header"><span class="card-title">Vulnerabilities & Security Risks</span></div>
+                    <div class="card-body">
+                        {% if sorted_vulns %}
+                            {% for vuln in sorted_vulns %}
+                                <div class="vuln-item">
+                                    <div class="vuln-header" onclick="toggleVuln(this)">
+                                        <span class="vuln-type">
+                                            <span class="badge badge-{{ (vuln[3] or 'info')|lower }}">{{ vuln[3] or 'INFO' }}</span>
+                                            &nbsp; {{ vuln[0] }}
+                                        </span>
+                                        <span style="font-size: 0.8rem; color: var(--text-secondary);">Click to expand</span>
+                                    </div>
+                                    <div class="vuln-content">
+                                        <p><b>Target URL:</b> <a href="{{ vuln[1] }}" target="_blank" style="color: var(--accent-cyan);">{{ vuln[1] }}</a></p>
+                                        <p style="margin-top: 10px;"><b>Details:</b> {{ vuln[2] }}</p>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p style="color: var(--text-secondary);">No high-risk vulnerabilities detected.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </section>
+
+            <!-- Subdomains Section -->
+            <section id="subdomains" class="section">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Subdomain Enumeration</span>
+                        <span class="badge badge-info">{{ results.subdomains|length }} Found</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="search-container">
+                            <input type="text" class="search-input" placeholder="Search subdomains..." onkeyup="filterTable(this, 'table-subs')">
+                        </div>
+                        <table id="table-subs">
+                            <thead><tr><th>Subdomain</th><th>Action</th></tr></thead>
+                            <tbody>
+                                {% for sub in results.subdomains %}
+                                <tr>
+                                    <td>{{ sub }}</td>
+                                    <td><button class="btn-copy" onclick="copyText('{{ sub }}')">Copy</button></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                {% if results.takeover_candidates %}
+                <div class="card" style="border-color: var(--accent-red);">
+                    <div class="card-header"><span class="card-title" style="color: var(--accent-red);">🚨 Potential Takeover Candidates</span></div>
+                    <div class="card-body">
+                        <table>
+                            <thead><tr><th>Subdomain</th><th>Service Identified</th></tr></thead>
+                            <tbody>
+                                {% for cand in results.takeover_candidates %}
+                                <tr><td>{{ cand[0] }}</td><td style="color: var(--accent-red)">{{ cand[1] }}</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
+            </section>
+
+            <!-- Ports Section -->
+            <section id="ports" class="section">
+                <div class="card">
+                    <div class="card-header"><span class="card-title">Port Scan Results</span></div>
+                    <div class="card-body">
+                        {% if results.open_ports %}
+                        <table>
+                            <thead><tr><th>Port</th><th>Protocol</th><th>Service</th><th>Product</th><th>Version</th></tr></thead>
+                            <tbody>
+                                {% for port in results.open_ports %}
+                                <tr>
+                                    <td>{{ port[0] }}</td>
+                                    <td>{{ port[1] }}</td>
+                                    <td>{{ port[2] }}</td>
+                                    <td>{{ port[3] }}</td>
+                                    <td>{{ port[4] }} {{ port[5] }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% else %}<p>No open ports discovered.</p>{% endif %}
+                    </div>
+                </div>
+            </section>
+
+            <!-- Directories Section -->
+            <section id="directories" class="section">
+                <div class="card">
+                    <div class="card-header"><span class="card-title">Directory Brute Force</span></div>
+                    <div class="card-body">
+                        <div class="search-container">
+                            <input type="text" class="search-input" placeholder="Filter URLs..." onkeyup="filterTable(this, 'table-dirs')">
+                        </div>
+                        <table id="table-dirs">
+                            <thead><tr><th>URL</th><th>Status</th><th>Size</th></tr></thead>
+                            <tbody>
+                                {% for dir in results.directories %}
+                                <tr>
+                                    <td><a href="{{ dir[0] }}" target="_blank" style="color: var(--text-primary);">{{ dir[0] }}</a></td>
+                                    <td><span class="badge {% if dir[1] == 200 %}badge-info{% else %}badge-low{% endif %}">{{ dir[1] }}</span></td>
+                                    <td>{{ dir[2] }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Endpoints Section -->
+            <section id="endpoints" class="section">
+                <div class="card">
+                    <div class="card-header"><span class="card-title">Discovered Endpoints</span></div>
+                    <div class="card-body">
+                        <div class="search-container">
+                            <input type="text" class="search-input" placeholder="Filter endpoints..." onkeyup="filterList(this, 'list-endpoints')">
+                        </div>
+                        <ul id="list-endpoints" style="list-style: none; font-size: 0.85rem;">
+                            {% for ep in results.endpoints %}
+                            <li style="padding: 8px 0; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between;">
+                                <span>{{ ep }}</span>
+                                <button class="btn-copy" onclick="copyText('{{ ep }}')">Copy</button>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Technologies Section -->
+            <section id="technologies" class="section">
+                <div class="card">
+                    <div class="card-header"><span class="card-title">Technology Fingerprinting</span></div>
+                    <div class="card-body">
+                        <table>
+                            <thead><tr><th>Category</th><th>Technology</th></tr></thead>
+                            <tbody>
+                                {% for tech in results.technologies %}
+                                <tr><td>{{ tech[0] }}</td><td><b>{{ tech[1] }}</b></td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- DNS Section -->
+            <section id="dns" class="section">
+                <div class="card">
+                    <div class="card-header"><span class="card-title">DNS Records</span></div>
+                    <div class="card-body">
+                        {% for rtype, records in results.dns_records.items() %}
+                        <div style="margin-bottom: 25px;">
+                            <h4 style="color: var(--accent-cyan); font-size: 0.9rem; margin-bottom: 10px;">{{ rtype }} Records</h4>
+                            <ul style="list-style: none; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;">
+                                {% for rec in records %}
+                                <li style="margin-bottom: 5px; font-family: monospace; font-size: 0.85rem;">{{ rec }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+
+            <!-- SSL Section -->
+            <section id="ssl" class="section">
+                <div class="card">
+                    <div class="card-header"><span class="card-title">SSL/TLS Configuration</span></div>
+                    <div class="card-body">
+                        {% if results.ssl_info %}
+                        <pre style="background: rgba(0,0,0,0.3); padding: 20px; border-radius: 10px; font-family: monospace; font-size: 0.85rem; color: var(--accent-green); overflow-x: auto;">
+{{ results.ssl_info | tojson(indent=2) }}</pre>
+                        {% else %}<p>No SSL information available.</p>{% endif %}
+                    </div>
+                </div>
+            </section>
+
+            <!-- Wayback Section -->
+            <section id="wayback" class="section">
+                <div class="card">
+                    <div class="card-header"><span class="card-title">Wayback Machine Archives</span></div>
+                    <div class="card-body">
+                        <p style="font-size: 0.8rem; margin-bottom: 20px; color: var(--text-secondary);">Showing first 50 discovered historical URLs.</p>
+                        <ul style="list-style: none; font-size: 0.8rem;">
+                            {% for url in results.wayback_urls[:50] %}
+                            <li style="margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                <a href="{{ url }}" target="_blank" style="color: var(--text-primary);">{{ url }}</a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- GitHub Section -->
+            <section id="github" class="section">
+                <div class="card">
+                    <div class="card-header"><span class="card-title">GitHub Exposure Scanning</span></div>
+                    <div class="card-body">
+                        {% if results.github_leaks %}
+                        <table>
+                            <thead><tr><th>Query</th><th>Repo</th><th>Path</th><th>Link</th></tr></thead>
+                            <tbody>
+                                {% for leak in results.github_leaks %}
+                                <tr>
+                                    <td>{{ leak[0] }}</td>
+                                    <td>{{ leak[1] }}</td>
+                                    <td style="font-size: 0.75rem; font-family: monospace;">{{ leak[2] }}</td>
+                                    <td><a href="{{ leak[3] }}" target="_blank" style="color: var(--accent-cyan);">View</a></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% else %}<p>No leaks identified on GitHub.</p>{% endif %}
+                    </div>
+                </div>
+            </section>
+
+            <div class="footer">
+                Bug Bounty Comprehensive Toolkit Dashboard &bull; v{{ version }} &bull; Generated for Educational Purposes
+            </div>
+        </div>
     </div>
-    
-    <h2>Subdomains</h2>
-    {% if results.subdomains %}
-    <table>
-        <tr><th>Subdomain</th></tr>
-        {% for sub in results.subdomains %}
-        <tr><td>{{ sub }}</td></tr>
-        {% endfor %}
-    </table>
-    {% else %}
-    <p>None found.</p>
-    {% endif %}
-    
-    <h2>Open Ports</h2>
-    {% if results.open_ports %}
-    <table>
-        <tr><th>Port</th><th>Protocol</th><th>Service</th><th>Product</th><th>Version</th></tr>
-        {% for port in results.open_ports %}
-        <tr><td>{{ port[0] }}</td><td>{{ port[1] }}</td><td>{{ port[2] }}</td><td>{{ port[3] }}</td><td>{{ port[4] }} {{ port[5] }}</td></tr>
-        {% endfor %}
-    </table>
-    {% else %}
-    <p>None found.</p>
-    {% endif %}
-    
-    <h2>Directories</h2>
-    {% if results.directories %}
-    <table>
-        <tr><th>URL</th><th>Status</th><th>Size</th></tr>
-        {% for dir in results.directories %}
-        <tr><td>{{ dir[0] }}</td><td>{{ dir[1] }}</td><td>{{ dir[2] }}</td></tr>
-        {% endfor %}
-    </table>
-    {% else %}
-    <p>None found.</p>
-    {% endif %}
-    
-    <h2>Vulnerabilities</h2>
-    {% if results.vulnerabilities %}
-    {% for vuln in results.vulnerabilities %}
-    <div class="vuln">
-        <strong>{{ vuln[0] }}</strong><br>
-        URL: {{ vuln[1] }}<br>
-        Details: {{ vuln[2] }}
-    </div>
-    {% endfor %}
-    {% else %}
-    <p>No vulnerabilities found.</p>
-    {% endif %}
-    
-    <h2>Technologies</h2>
-    {% if results.technologies %}
-    <table>
-        <tr><th>Category</th><th>Technology</th></tr>
-        {% for tech in results.technologies %}
-        <tr><td>{{ tech[0] }}</td><td>{{ tech[1] }}</td></tr>
-        {% endfor %}
-    </table>
-    {% else %}
-    <p>None detected.</p>
-    {% endif %}
-    
-    <h2>DNS Records</h2>
-    {% for rtype, records in results.dns_records.items() %}
-    <h3>{{ rtype }}</h3>
-    <ul>
-        {% for rec in records %}
-        <li>{{ rec }}</li>
-        {% endfor %}
-    </ul>
-    {% endfor %}
-    
-    <h2>SSL/TLS Info</h2>
-    {% if results.ssl_info %}
-    <pre>{{ results.ssl_info|tojson(indent=2) }}</pre>
-    {% endif %}
-    
-    <h2>Cloud Provider</h2>
-    <p>{{ results.cloud_provider or 'Unknown' }}</p>
-    
-    <h2>Historical URLs (Wayback Machine)</h2>
-    {% if results.wayback_urls %}
-    <p>Total: {{ results.wayback_urls|length }} (first 50 shown)</p>
-    <ul>
-        {% for url in results.wayback_urls[:50] %}
-        <li><a href="{{ url }}" target="_blank">{{ url }}</a></li>
-        {% endfor %}
-    </ul>
-    {% else %}
-    <p>None.</p>
-    {% endif %}
-    
-    <h2>GitHub Leaks</h2>
-    {% if results.github_leaks %}
-    <table>
-        <tr><th>Query</th><th>Repo</th><th>Path</th><th>URL</th></tr>
-        {% for leak in results.github_leaks %}
-        <tr><td>{{ leak[0] }}</td><td>{{ leak[1] }}</td><td>{{ leak[2] }}</td><td><a href="{{ leak[3] }}">Link</a></td></tr>
-        {% endfor %}
-    </table>
-    {% else %}
-    <p>None.</p>
-    {% endif %}
-    
-    <div class="footer">
-        Generated by Psycho Bug Bounty Toolkit v{{ version }} | Educational Purpose Only
-    </div>
+
+    <script>
+        function showSection(id) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            window.scrollTo(0, 0);
+        }
+
+        function toggleVuln(header) {
+            header.parentElement.classList.toggle('open');
+        }
+
+        function filterTable(input, tableId) {
+            let filter = input.value.toLowerCase();
+            let table = document.getElementById(tableId);
+            let tr = table.getElementsByTagName("tr");
+            for (let i = 1; i < tr.length; i++) {
+                let text = tr[i].textContent.toLowerCase();
+                tr[i].style.display = text.includes(filter) ? "" : "none";
+            }
+        }
+
+        function filterList(input, listId) {
+            let filter = input.value.toLowerCase();
+            let ul = document.getElementById(listId);
+            let li = ul.getElementsByTagName("li");
+            for (let i = 0; i < li.length; i++) {
+                let text = li[i].textContent.toLowerCase();
+                li[i].style.display = text.includes(filter) ? "" : "none";
+            }
+        }
+
+        function copyText(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Copied to clipboard: ' + text);
+            });
+        }
+    </script>
 </body>
 </html>
         """
+        # Pre-sort vulnerabilities by severity
+        SEV_ORDER = {'CRITICAL': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3, 'INFO': 4}
+        def vuln_sev(v):
+            return SEV_ORDER.get(v[3] if len(v) > 3 else 'INFO', 99)
+        sorted_vulns = sorted(self.results['vulnerabilities'], key=vuln_sev)
+
         template = Template(template_str)
         html_content = template.render(target=self.target_domain,
                                        date=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                                        version=__version__,
-                                       results=self.results)
+                                       results=self.results,
+                                       sorted_vulns=sorted_vulns)
 
         if self.output_file:
             import os
@@ -1796,7 +2254,7 @@ def _print_disclaimer():
 ║  USE ONLY ON SYSTEMS YOU OWN OR HAVE EXPLICIT PERMISSION TO TEST ║
 ║  UNAUTHORIZED ACCESS IS ILLEGAL AND UNETHICAL.                   ║
 ║                                                                  ║
-║  Created by: Psycho (@the_psycho_of_hackers)  v{__version__}           ║
+║  Created by: Psycho (@the_psycho_of_hackers)  v{__version__}     ║
 ╚══════════════════════════════════════════════════════════════════╝
 {Colors.END}""")
 
